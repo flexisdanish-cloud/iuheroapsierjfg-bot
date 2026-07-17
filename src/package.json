@@ -1,7 +1,7 @@
 {
   "name": "telegram-razorpay-bot",
   "version": "1.0.0",
-  "main": "src/bot/index.js",
+  "main": "bot/index.js",
   "type": "module",
   "scripts": {
     "start": "nodemon bot/index.js"
