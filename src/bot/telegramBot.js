@@ -3,7 +3,7 @@ import { createOneTimeChannelLink } from "../middleware/ChannelInvites.js";
 import { channelMap } from "../config/channelMap.js";
 
 
-import keys from "../config/keys.js";
+import keys from "config/keys.js";
 
 import { createPayment } from "../controllers/paymentController.js";
 import { verifyContact } from "../middleware/verifycontact.js";
