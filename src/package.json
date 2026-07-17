@@ -1,0 +1,19 @@
+{
+  "name": "telegram-razorpay-bot",
+  "version": "1.0.0",
+  "main": "src/bot/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "nodemon bot/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.0.0",
+    "ejs": "^6.0.1",
+    "express": "^4.22.2",
+    "nodemon": "^3.1.14",
+    "razorpay": "^2.8.0",
+    "telegraf": "^4.12.0"
+  }
+}

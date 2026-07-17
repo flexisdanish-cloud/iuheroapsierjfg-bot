@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>
+Complete Payment
+</title>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+
+<style>
+
+body{
+
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+background:#f5f5f5;
+
+}
+
+
+button{
+
+background:#0f9d58;
+color:white;
+border:none;
+padding:15px 30px;
+font-size:18px;
+border-radius:8px;
+cursor:pointer;
+
+}
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div>
+
+<h2>
+🌿 Premium Plan
+</h2>
+
+
+<p>
+Amount: ₹500
+</p>
+
+
+<button onclick="pay()">
+Pay ₹500
+</button>
+
+
+</div>
+
+
+
+<script>
+
+
+let statusInterval;
+
+
+
+function pay(){
+
+
+let options = {
+
+
+key:
+"<%= razorpayKey %>",
+
+
+amount:
+50000,
+
+
+currency:
+"INR",
+
+
+name:
+"Premium Plan",
+
+
+description:
+"Telegram Purchase",
+
+
+order_id:
+"<%= orderId %>",
+
+
+
+handler:function(response){
+
+
+console.log(
+"Payment response:",
+response
+);
+
+
+
+// VERIFY PAYMENT
+
+fetch("/verify-payment",{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify(response)
+
+
+})
+.then(()=>{
+
+
+document.body.innerHTML = `
+
+<div style="
+display:flex;
+height:100vh;
+justify-content:center;
+align-items:center;
+font-family:Arial;
+">
+
+<div>
+
+<h2>
+⏳ Payment Processing
+</h2>
+
+<p>
+Waiting for payment confirmation...
+</p>
+
+</div>
+
+</div>
+
+`;
+
+
+
+// START STATUS CHECK
+
+checkPaymentStatus();
+
+
+});
+
+
+
+},
+
+
+
+
+prefill:{
+
+
+name:
+"Telegram User"
+
+
+},
+
+
+
+theme:{
+
+
+color:
+"#0f9d58"
+
+
+},
+
+
+
+modal:{
+
+
+ondismiss:function(){
+
+
+console.log(
+"Payment closed"
+);
+
+
+}
+
+
+}
+
+
+
+};
+
+
+
+let rzp =
+new Razorpay(options);
+
+
+
+rzp.on(
+
+"payment.failed",
+
+function(response){
+
+
+console.log(
+"Payment Failed:",
+response.error
+);
+
+
+alert(
+"Payment failed"
+);
+
+
+}
+
+);
+
+
+
+rzp.open();
+
+
+
+}
+
+
+
+
+
+
+
+function checkPaymentStatus(){
+
+
+statusInterval =
+setInterval(()=>{
+
+
+fetch(
+"/payment-status/<%= orderId %>"
+)
+
+
+.then(res=>res.json())
+
+
+.then(data=>{
+
+
+console.log(
+"Payment status:",
+data.status
+);
+
+
+
+if(data.status==="paid"){
+
+
+
+clearInterval(statusInterval);
+
+
+
+window.location =
+"/success/<%= orderId %>";
+
+
+
+}
+
+
+
+if(data.status==="failed"){
+
+
+clearInterval(statusInterval);
+
+
+alert(
+"Payment failed"
+);
+
+
+}
+
+
+})
+
+
+
+},3000);
+
+
+
+}
+
+
+
+</script>
+
+
+</body>
+
+</html>
