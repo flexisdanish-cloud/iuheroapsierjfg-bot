@@ -1,6 +1,6 @@
 import { Telegraf, Markup, session } from "telegraf";
 import { createOneTimeChannelLink } from "../middleware/ChannelInvites.js";
-import { channelMap } from "../config/channelMap.js";
+import { channelMap } from "../config/ChannelMap.js";
 
 
 import keys from "../config/keys.js";
