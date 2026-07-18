@@ -35,7 +35,9 @@ app.set(
 path.join(__dirname,"../views")
 );
 
-
+app.get("/",(req,res)=>{
+    res.render("home.ejs")
+})
 
 
 
