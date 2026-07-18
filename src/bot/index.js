@@ -54,16 +54,13 @@ razorpayWebhook
 
 );
 
+app.use(express.json());
 
-
-app.get("/test",(req,res)=>{
-    console.log("Server reachable");
-    res.send("OK");
+app.post("/telegram-webhook", (req, res) => {
+    bot.handleUpdate(req.body, res);
 });
 
-app.use(
-express.json()
-);
+
 
 
 
@@ -101,9 +98,7 @@ app.get("/getdb", (req, res) => {
 });
 
 app.get(
-"/pay/:orderId",
-
-(req,res)=>{
+"/pay/:orderId",(req,res)=>{
 
 
 res.render(
@@ -261,46 +256,32 @@ Thank you for your purchase.
 
 );
 
-
-
-
-
-
-app.listen(
-
-3000,
-
-()=>{
-
-console.log(
-"Server running on port 3000"
-);
-
-}
-
-);
-
 setupChatMemberHandler(bot);
 
 
+app.listen(3000,async ()=>{
+console.log("Server running on port 3000");
+    await bot.telegram.setWebhook(
+    `${process.env.BASE_URL}/telegram-webhook`,
+    {
+        allowed_updates: [
+            "message",
+            "edited_message",
+            "channel_post",
+            "edited_channel_post",
+            "inline_query",
+            "chosen_inline_result",
+            "callback_query", 
+            "shipping_query",
+            "pre_checkout_query",
+            "poll",
+            "poll_answer",
+            "my_chat_member",
+            "chat_member",
+            "chat_join_request"
+        ]
+    }
+);
+}
 
-bot.launch({
-  allowedUpdates: [
-    "message",          // normal text messages, commands
-    "edited_message",   // when a user edits a message
-    "channel_post",     // posts in channels
-    "edited_channel_post",
-    "inline_query",     // inline queries (@yourbot in text field)
-    "chosen_inline_result",
-    "callback_query",   // button clicks (like "View More Plans")
-    "shipping_query",   // for payments/shipping
-    "pre_checkout_query", // for payments
-    "poll",             // polls
-    "poll_answer",      // poll answers
-    "my_chat_member",   // when the bot itself is added/removed
-    "chat_member",      // when a user joins/leaves a group/supergroup
-    "chat_join_request" // when someone requests to join a chat
-  ]
-});
-
-
+);
