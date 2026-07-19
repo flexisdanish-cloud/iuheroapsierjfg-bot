@@ -1,4 +1,4 @@
-import db from "../database/database.js";
+import { saveUserPhone } from "../database/database.js";
 
 
 export const verifyContact = async (ctx) => {
@@ -12,11 +12,7 @@ export const verifyContact = async (ctx) => {
   const phone = contact.phone_number;
 
   // Save contact in DB for later use
-  db.prepare(`
-    INSERT INTO users (telegram_id, phone)
-    VALUES (?, ?)
-    ON CONFLICT(telegram_id) DO UPDATE SET phone=excluded.phone
-  `).run(userId, phone);
+  await saveUserPhone(userId, phone);
 
   await ctx.reply("✅ Phone number saved! Now choose a plan.");
 };

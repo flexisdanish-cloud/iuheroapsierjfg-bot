@@ -1,5 +1,5 @@
 
-import db from "../database/database.js";
+import { createPaymentRecord, findUserByTelegramId } from "../database/database.js";
 import { Markup } from "telegraf";
 import Razorpay from "razorpay";
 import dotenv from "dotenv";
@@ -14,7 +14,7 @@ const razorpay = new Razorpay({
 export const createPayment = async (ctx, amount) => {
   try {
     const userId = ctx.from.id;
-    const user = db.prepare(`SELECT phone FROM users WHERE telegram_id=?`).get(userId);
+    const user = await findUserByTelegramId(userId);
 
     if (!user) {
       return ctx.reply("⚠️ Please share your phone number first.");
@@ -27,10 +27,13 @@ export const createPayment = async (ctx, amount) => {
       receipt: `telegram_${userId}_${Date.now()}`
     });
 
-    db.prepare(`
-      INSERT INTO payments (telegram_id, phone, order_id, status)
-      VALUES (?, ?, ?, ?)
-    `).run(userId, user.phone, order.id, "created");
+    await createPaymentRecord({
+      telegram_id: userId,
+      phone: user.phone,
+      order_id: order.id,
+      amount: amount * 100,
+      status: "created"
+    });
 
     await ctx.reply(
       "💳 Complete your payment",

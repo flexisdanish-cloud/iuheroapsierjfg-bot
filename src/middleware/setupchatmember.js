@@ -1,4 +1,9 @@
-import db from "../database/database.js";
+import {
+  findPaidPaymentByTelegramId,
+  findUnusedInviteByTelegramId,
+  findUserByTelegramId,
+  markInviteUsed
+} from "../database/database.js";
 
 export default function setupChatMemberHandler(bot) {
   bot.on("chat_member", async (ctx) => {
@@ -21,7 +26,7 @@ export default function setupChatMemberHandler(bot) {
       }
 
       // 1. Check if user exists in DB
-      const user = db.prepare("SELECT * FROM users WHERE telegram_id=?").get(userId);
+      const user = await findUserByTelegramId(userId);
       if (!user) {
         await bot.telegram.kickChatMember(channelId, userId);
         await bot.telegram.unbanChatMember(channelId, userId);
@@ -30,10 +35,7 @@ export default function setupChatMemberHandler(bot) {
       }
 
       // 2. Check if user has a valid payment record
-      const payment = db.prepare(`
-        SELECT * FROM payments
-        WHERE telegram_id=? AND status='paid'
-      `).get(userId);
+      const payment = await findPaidPaymentByTelegramId(userId);
       if (!payment) {
         await bot.telegram.kickChatMember(channelId, userId);
         await bot.telegram.unbanChatMember(channelId, userId);
@@ -48,10 +50,7 @@ export default function setupChatMemberHandler(bot) {
       };
       const requiredPlan = channelPlans[channelId];
 
-      const invite = db.prepare(`
-        SELECT plan FROM channel_invites
-        WHERE telegram_id=? AND used=0
-      `).get(userId);
+      const invite = await findUnusedInviteByTelegramId(userId);
 
       if (!invite) {
         await bot.telegram.kickChatMember(channelId, userId);
@@ -68,11 +67,7 @@ export default function setupChatMemberHandler(bot) {
       }
 
       // 4. If valid and plan matches → allow them
-      db.prepare(`
-        UPDATE channel_invites
-        SET used=1
-        WHERE telegram_id=? AND plan=? AND used=0
-      `).run(userId, invite.plan);
+      await markInviteUsed(userId, invite.plan);
 
       console.log(`✅ User ${userId} verified with correct plan, invite marked used, allowed in channel`);
     } catch (err) {

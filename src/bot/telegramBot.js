@@ -1,13 +1,12 @@
 import { Telegraf, Markup, session } from "telegraf";
 import { createOneTimeChannelLink } from "../middleware/ChannelInvites.js";
-import { channelMap } from "../config/channelMap.js";
+import { channelMap } from "../config/ChannelMap.js";
 
 
 import keys from "../config/keys.js";
 
 import { createPayment } from "../controllers/paymentController.js";
 import { verifyContact } from "../middleware/verifycontact.js";
-import db from "../database/database.js";
 import { getPhoneByTelegramId } from "../middleware/GetPhone.js";
 import { getPaidRecordByPhoneAndAmount } from "../middleware/PaymentLookup.js";
 
@@ -135,13 +134,13 @@ bot.action("view_plans", async (ctx) => {
 
 
 bot.action("buy_basic", async (ctx) => {
-  const phone = getPhoneByTelegramId(ctx.from.id);
+  const phone = await getPhoneByTelegramId(ctx.from.id);
   if (!phone) {
     return ctx.reply("⚠️ Please share your phone number first.");
   }
 
   // If user has NOT paid yet → create payment
-  if (!getPaidRecordByPhoneAndAmount(phone, 4900)) {
+  if (!await getPaidRecordByPhoneAndAmount(phone, 4900)) {
     await createPayment(ctx, 49);
   } else {
     // Already purchased → send invite link
@@ -161,12 +160,12 @@ bot.action("buy_basic", async (ctx) => {
 
 
 bot.action("buy_advanced", async (ctx) => {
-  const phone = getPhoneByTelegramId(ctx.from.id);
+  const phone = await getPhoneByTelegramId(ctx.from.id);
   if (!phone) {
     return ctx.reply("⚠️ Please share your phone number first.");
   }
 
-  if (!getPaidRecordByPhoneAndAmount(phone, 9900)) {
+  if (!await getPaidRecordByPhoneAndAmount(phone, 9900)) {
     await createPayment(ctx, 99);
   } else {
    const userId = ctx.from.id; // Telegram user ID
@@ -182,11 +181,11 @@ bot.action("buy_advanced", async (ctx) => {
 });
 
 bot.action("buy_transformation", async (ctx) => {
-  const phone = getPhoneByTelegramId(ctx.from.id);
+  const phone = await getPhoneByTelegramId(ctx.from.id);
   if (!phone) {
     return ctx.reply("⚠️ Please share your phone number first.");
   }
- if (!getPaidRecordByPhoneAndAmount(phone, 249900)) {
+ if (!await getPaidRecordByPhoneAndAmount(phone, 249900)) {
     await createPayment(ctx, 2499);
   }
   else {

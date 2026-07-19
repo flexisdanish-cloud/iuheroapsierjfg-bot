@@ -5,7 +5,12 @@ import { fileURLToPath } from "url";
 import setupChatMemberHandler from "../middleware/setupchatmember.js";
 import bot from "./telegramBot.js";
 import { razorpayWebhook } from "../controllers/webhookController.js";
-import db from "../database/database.js";
+import {
+    connectDatabase,
+    findPaymentByOrderId,
+    findPaymentStatusByOrderId,
+    listPayments
+} from "../database/database.js";
 
 dotenv.config();
 
@@ -67,14 +72,11 @@ express.json()
 
 
 
-app.get("/getdb", (req, res) => {
+app.get("/getdb", async (req, res) => {
 
     try {
 
-        const payments = db.prepare(`
-            SELECT *
-            FROM payments
-        `).all();
+        const payments = await listPayments();
 
 
         res.json({
@@ -100,28 +102,28 @@ app.get("/getdb", (req, res) => {
 
 });
 
-app.get(
-"/pay/:orderId",
+app.get("/pay/:orderId", async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
 
-(req,res)=>{
+    // Fetch payment record from DB
+    const paymentRecord = await findPaymentByOrderId(orderId);
 
+    if (!paymentRecord) {
+      return res.status(404).send("Order not found");
+    }
 
-res.render(
-
-"payment",
-
-{
-
-orderId:req.params.orderId,
-
-razorpayKey:
-process.env.RAZORPAY_KEY
-
-}
-
-);
-
-
+    // Render template with dynamic values
+    res.render("payment", {
+      orderId: paymentRecord.order_id,
+      razorpayKey: process.env.RAZORPAY_KEY,
+      amount: paymentRecord.amount,       // paise
+       // optional, if stored in DB
+    });
+  } catch (err) {
+    console.error("Error fetching payment:", err);
+    res.status(500).send("Server error");
+  }
 });
 
 
@@ -129,29 +131,13 @@ app.get(
 
 "/payment-status/:orderId",
 
-(req,res)=>{
+async (req,res)=>{
 
 
 try{
 
 
-const payment =
-
-db.prepare(`
-
-SELECT status
-
-FROM payments
-
-WHERE order_id=?
-
-`)
-
-.get(
-
-req.params.orderId
-
-);
+const payment = await findPaymentStatusByOrderId(req.params.orderId);
 
 
 
@@ -204,26 +190,10 @@ app.get(
 
 "/success/:orderId",
 
-(req,res)=>{
+async (req,res)=>{
 
 
-const payment =
-
-db.prepare(`
-
-SELECT status
-
-FROM payments
-
-WHERE order_id=?
-
-`)
-
-.get(
-
-req.params.orderId
-
-);
+const payment = await findPaymentStatusByOrderId(req.params.orderId);
 
 
 
@@ -266,14 +236,18 @@ Thank you for your purchase.
 
 
 
+await connectDatabase();
+
+const port = process.env.PORT || 3000;
+
 app.listen(
 
-3000,
+port,
 
 ()=>{
 
 console.log(
-"Server running on port 3000"
+`Server running on port ${port}`
 );
 
 }
@@ -284,7 +258,7 @@ setupChatMemberHandler(bot);
 
 
 
-bot.launch({
+await bot.launch({
   allowedUpdates: [
     "message",          // normal text messages, commands
     "edited_message",   // when a user edits a message

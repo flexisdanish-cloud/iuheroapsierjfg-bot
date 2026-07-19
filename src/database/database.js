@@ -1,69 +1,189 @@
-import Database from "better-sqlite3";
-import path from "path";
-import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import { MongoClient } from "mongodb";
 
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.MONGODB_DB || "flexisdanish";
 
+if (!uri) {
+  throw new Error("MONGODB_URI is required. Add it to your .env and Render environment variables.");
+}
 
-const dbPath = path.join(
-    __dirname,
-    "payments.db"
-);
+const client = new MongoClient(uri, {
+  serverSelectionTimeoutMS: 10000
+});
 
+let database;
+let connectionPromise;
 
-const db = new Database(dbPath);
+export async function connectDatabase() {
+  if (!connectionPromise) {
+    connectionPromise = client.connect().then(async () => {
+      database = client.db(dbName);
+      await createIndexes();
+      console.log(`MongoDB connected: ${dbName}`);
+      return database;
+    });
+  }
 
+  return connectionPromise;
+}
 
+async function createIndexes() {
+  const users = database.collection("users");
+  const payments = database.collection("payments");
+  const channelInvites = database.collection("channel_invites");
 
-db.exec(`
+  await Promise.all([
+    users.createIndex({ telegram_id: 1 }, { unique: true }),
+    payments.createIndex({ order_id: 1 }, { unique: true }),
+    payments.createIndex({ telegram_id: 1, status: 1 }),
+    payments.createIndex({ phone: 1, amount: 1, status: 1 }),
+    channelInvites.createIndex({ token: 1 }, { unique: true }),
+    channelInvites.createIndex({ telegram_id: 1, used: 1 })
+  ]);
+}
 
-CREATE TABLE IF NOT EXISTS payments (
+async function collection(name) {
+  const db = await connectDatabase();
+  return db.collection(name);
+}
 
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+function telegramId(value) {
+  return String(value);
+}
 
-    telegram_id TEXT NOT NULL,
+export async function findUserByTelegramId(userId) {
+  const users = await collection("users");
+  return users.findOne({ telegram_id: telegramId(userId) });
+}
 
-    phone TEXT,
+export async function saveUserPhone(userId, phone) {
+  const users = await collection("users");
+  await users.updateOne(
+    { telegram_id: telegramId(userId) },
+    {
+      $set: {
+        phone,
+        updated_at: new Date()
+      },
+      $setOnInsert: {
+        telegram_id: telegramId(userId),
+        created_at: new Date()
+      }
+    },
+    { upsert: true }
+  );
+}
 
-    order_id TEXT UNIQUE NOT NULL,
+export async function getPhoneByTelegramId(userId) {
+  const user = await findUserByTelegramId(userId);
+  return user ? user.phone : null;
+}
 
-    payment_id TEXT,
+export async function createPaymentRecord({ telegram_id, phone, order_id, amount, status = "created" }) {
+  const payments = await collection("payments");
+  await payments.insertOne({
+    telegram_id: telegramId(telegram_id),
+    phone,
+    order_id,
+    payment_id: null,
+    amount,
+    currency: null,
+    status,
+    created_at: new Date()
+  });
+}
 
-    amount INTEGER,
+export async function findPaymentByOrderId(orderId) {
+  const payments = await collection("payments");
+  return payments.findOne({ order_id: orderId });
+}
 
-    currency TEXT,
+export async function listPayments() {
+  const payments = await collection("payments");
+  return payments.find({}).sort({ created_at: -1 }).toArray();
+}
 
-    status TEXT DEFAULT 'created',
+export async function findPaymentStatusByOrderId(orderId) {
+  const payment = await findPaymentByOrderId(orderId);
+  return payment ? { status: payment.status } : null;
+}
 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+export async function updatePaymentAsPaid(orderId, { payment_id, amount, currency }) {
+  const payments = await collection("payments");
+  await payments.updateOne(
+    { order_id: orderId },
+    {
+      $set: {
+        payment_id,
+        amount,
+        currency,
+        status: "paid",
+        paid_at: new Date(),
+        updated_at: new Date()
+      }
+    }
+  );
+}
 
-);
+export async function getPaidRecordByPhoneAndAmount(phone, amount) {
+  const payments = await collection("payments");
+  return payments.findOne({
+    phone,
+    amount,
+    status: "paid"
+  });
+}
 
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    telegram_id TEXT UNIQUE NOT NULL,
-    phone TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+export async function findPaidPaymentByTelegramId(userId) {
+  const payments = await collection("payments");
+  return payments.findOne({
+    telegram_id: telegramId(userId),
+    status: "paid"
+  });
+}
 
+export async function createChannelInvite({ token, telegram_id, plan, expires_at }) {
+  const channelInvites = await collection("channel_invites");
+  await channelInvites.insertOne({
+    token,
+    telegram_id: telegramId(telegram_id),
+    plan,
+    expires_at,
+    used: false,
+    created_at: new Date()
+  });
+}
 
-CREATE TABLE IF NOT EXISTS channel_invites (
-    token TEXT PRIMARY KEY,
-    telegram_id TEXT NOT NULL,
-    plan TEXT NOT NULL,
-    expires_at INTEGER,
-    used INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
-);
+export async function findUnusedInviteByTelegramId(userId) {
+  const channelInvites = await collection("channel_invites");
+  return channelInvites.findOne({
+    telegram_id: telegramId(userId),
+    used: false
+  });
+}
 
+export async function markInviteUsed(userId, plan) {
+  const channelInvites = await collection("channel_invites");
+  await channelInvites.updateOne(
+    {
+      telegram_id: telegramId(userId),
+      plan,
+      used: false
+    },
+    {
+      $set: {
+        used: true,
+        used_at: new Date()
+      }
+    }
+  );
+}
 
-`);
-
-
-
-
-
-export default db;
+export async function closeDatabase() {
+  await client.close();
+  connectionPromise = null;
+  database = null;
+}

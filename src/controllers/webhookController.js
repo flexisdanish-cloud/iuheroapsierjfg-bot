@@ -2,7 +2,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import dotenv from "dotenv";
 import { createOneTimeChannelLink } from "../middleware/ChannelInvites.js";
-import db from "../database/database.js";
+import { findPaymentByOrderId, updatePaymentAsPaid } from "../database/database.js";
 import { channelMap } from "../config/ChannelMap.js";
 
 import bot from "../bot/telegramBot.js";
@@ -149,22 +149,12 @@ payment.currency;
 
 
 
-// FIND ORDER IN SQLITE
+// FIND ORDER IN DATABASE
 
 
 const paymentRecord =
 
-db.prepare(`
-
-SELECT *
-
-FROM payments
-
-WHERE order_id = ?
-
-`)
-
-.get(
+await findPaymentByOrderId(
 razorpayOrderId
 );
 
@@ -260,40 +250,14 @@ return res.status(400).send(
 
 
 
-// UPDATE SQLITE
+// UPDATE DATABASE
 
 
-db.prepare(`
-
-UPDATE payments
-
-SET
-
-payment_id=?,
-
-amount=?,
-
-currency=?,
-
-status=?
-
-WHERE order_id=?
-
-`)
-
-.run(
-
-razorpayPaymentId,
-
-amount,
-
-currency,
-
-"paid",
-
-razorpayOrderId
-
-);
+await updatePaymentAsPaid(razorpayOrderId, {
+  payment_id: razorpayPaymentId,
+  amount,
+  currency
+});
 
 
 
