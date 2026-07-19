@@ -106,7 +106,7 @@ app.get("/pay/:orderId", async (req, res) => {
     const { orderId } = req.params;
 
     // Fetch payment record from your database
-    const paymentRecord = await Payment.findOne({ order_id: orderId });
+    const paymentRecord = await findPaymentByOrderId(orderId);
     // Replace the above line with your actual DB query
 
     if (!paymentRecord) {
