@@ -101,44 +101,22 @@ app.get("/getdb", async (req, res) => {
 
 });
 
-<<<<<<< HEAD
 app.get("/pay/:orderId", async (req, res) => {
   try {
-    const orderId = req.params.orderId;
+    const { orderId } = req.params;
 
-    // Fetch payment record from DB
-    const paymentRecord = await findPaymentByOrderId(orderId);
-=======
-app.get(
-"/pay/:orderId",(req,res)=>{
-
-
-res.render(
-
-"payment",
-
-{
-
-orderId:req.params.orderId,
-
-razorpayKey:
-process.env.RAZORPAY_KEY
-
-}
-
-);
->>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
+    // Fetch payment record from your database
+    const paymentRecord = await Payment.findOne({ order_id: orderId });
+    // Replace the above line with your actual DB query
 
     if (!paymentRecord) {
       return res.status(404).send("Order not found");
     }
 
-    // Render template with dynamic values
     res.render("payment", {
       orderId: paymentRecord.order_id,
       razorpayKey: process.env.RAZORPAY_KEY,
-      amount: paymentRecord.amount,       // paise
-       // optional, if stored in DB
+      amount: paymentRecord.amount, // Amount in paise
     });
   } catch (err) {
     console.error("Error fetching payment:", err);
@@ -251,32 +229,6 @@ Thank you for your purchase.
 
 );
 
-<<<<<<< HEAD
-
-
-
-
-
-await connectDatabase();
-
-const port = process.env.PORT || 3000;
-
-app.listen(
-
-port,
-
-()=>{
-
-console.log(
-`Server running on port ${port}`
-);
-
-}
-
-);
-
-=======
->>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
 setupChatMemberHandler(bot);
 
 
@@ -305,27 +257,4 @@ console.log("Server running on port 3000");
 );
 }
 
-<<<<<<< HEAD
-await bot.launch({
-  allowedUpdates: [
-    "message",          // normal text messages, commands
-    "edited_message",   // when a user edits a message
-    "channel_post",     // posts in channels
-    "edited_channel_post",
-    "inline_query",     // inline queries (@yourbot in text field)
-    "chosen_inline_result",
-    "callback_query",   // button clicks (like "View More Plans")
-    "shipping_query",   // for payments/shipping
-    "pre_checkout_query", // for payments
-    "poll",             // polls
-    "poll_answer",      // poll answers
-    "my_chat_member",   // when the bot itself is added/removed
-    "chat_member",      // when a user joins/leaves a group/supergroup
-    "chat_join_request" // when someone requests to join a chat
-  ]
-});
-
-
-=======
 );
->>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
