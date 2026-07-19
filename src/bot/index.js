@@ -40,7 +40,9 @@ app.set(
 path.join(__dirname,"../views")
 );
 
-
+app.get("/",(req,res)=>{
+    res.render("home.ejs")
+})
 
 
 
@@ -59,16 +61,13 @@ razorpayWebhook
 
 );
 
+app.use(express.json());
 
-
-app.get("/test",(req,res)=>{
-    console.log("Server reachable");
-    res.send("OK");
+app.post("/telegram-webhook", (req, res) => {
+    bot.handleUpdate(req.body, res);
 });
 
-app.use(
-express.json()
-);
+
 
 
 
@@ -102,12 +101,33 @@ app.get("/getdb", async (req, res) => {
 
 });
 
+<<<<<<< HEAD
 app.get("/pay/:orderId", async (req, res) => {
   try {
     const orderId = req.params.orderId;
 
     // Fetch payment record from DB
     const paymentRecord = await findPaymentByOrderId(orderId);
+=======
+app.get(
+"/pay/:orderId",(req,res)=>{
+
+
+res.render(
+
+"payment",
+
+{
+
+orderId:req.params.orderId,
+
+razorpayKey:
+process.env.RAZORPAY_KEY
+
+}
+
+);
+>>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
 
     if (!paymentRecord) {
       return res.status(404).send("Order not found");
@@ -231,6 +251,7 @@ Thank you for your purchase.
 
 );
 
+<<<<<<< HEAD
 
 
 
@@ -254,10 +275,37 @@ console.log(
 
 );
 
+=======
+>>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
 setupChatMemberHandler(bot);
 
 
+app.listen(3000,async ()=>{
+console.log("Server running on port 3000");
+    await bot.telegram.setWebhook(
+    `${process.env.BASE_URL}/telegram-webhook`,
+    {
+        allowed_updates: [
+            "message",
+            "edited_message",
+            "channel_post",
+            "edited_channel_post",
+            "inline_query",
+            "chosen_inline_result",
+            "callback_query", 
+            "shipping_query",
+            "pre_checkout_query",
+            "poll",
+            "poll_answer",
+            "my_chat_member",
+            "chat_member",
+            "chat_join_request"
+        ]
+    }
+);
+}
 
+<<<<<<< HEAD
 await bot.launch({
   allowedUpdates: [
     "message",          // normal text messages, commands
@@ -278,3 +326,6 @@ await bot.launch({
 });
 
 
+=======
+);
+>>>>>>> f6ede8f033938bc5d243f393d2c60675e66f989a
