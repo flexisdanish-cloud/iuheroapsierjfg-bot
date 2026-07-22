@@ -106,7 +106,7 @@ bot.on("contact", async (ctx) => {
   await verifyContact(ctx);
   // After verifying, send intro message
   await ctx.reply(introMessage, Markup.inlineKeyboard([
-    [Markup.button.callback("💳 View More Plans", "view_plans")]
+    [Markup.button.callback("💳 View Plans", "view_plans")]
   ]));
 });
 
